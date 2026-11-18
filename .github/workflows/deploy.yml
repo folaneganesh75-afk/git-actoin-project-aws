@@ -11,20 +11,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Deploy to EC2
+      - name: Create Remote Directory
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            sudo mkdir -p /usr/share/nginx/html
-            sudo rm -rf /tmp/website/*
-            
-      - name: Copy Website Files
+            mkdir -p /tmp/website
+
+      - name: Copy Files to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -33,14 +32,19 @@ jobs:
           source: "./*"
           target: "/tmp/website/"
 
-      - name: Move Files to Nginx
+      - name: Deploy Website on Nginx
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            sudo cp -r /tmp/website/* /usr/share/nginx/html/
+            sudo mkdir -p /usr/share/nginx/html
+            sudo cp -r /tmp/website/. /usr/share/nginx/html/
             sudo chmod -R 755 /usr/share/nginx/html/
+            sudo nginx -t
             sudo systemctl reload nginx
+
+      - name: Deployment Successful
+        run: echo "Website deployed successfully on AWS EC2!"
 ```
